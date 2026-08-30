@@ -204,6 +204,12 @@ def calculate_vif(X, feature_names):
     return pd.DataFrame(rows)
 
 #add
+# def lag1_autocorrelation(residuals):
+#     residuals = np.asarray(residuals,dtype=float).reshape(-1)
+#     if len(residuals) < 3 or np.std(residuals[:-1]) == 0 or np.std(residuals[1:]) == 0:
+#         return np.nan
+#     return np.corrcoef(residuals[:-1],residuals[1:])[0,1]
+
 def lag1_autocorrelation(residuals):
     residuals = np.asarray(residuals, dtype=float).reshape(-1)
     if len(residuals) < 3:
@@ -219,16 +225,6 @@ def residual_diagnostics(pred_df):
     resid = obs - pred
     return {'N':len(resid),'Residual_Mean':np.mean(resid),'Residual_SD':np.std(resid,ddof=1),'Lag1_Residual_ACF':lag1_autocorrelation(resid)}
 
-def linear_quadratic_assessment(x, y):
-    x = np.asarray(x,dtype=float).reshape(-1); y = np.asarray(y,dtype=float).reshape(-1)
-    Xlin = x.reshape(-1,1)
-    lin = linear_model.LinearRegression().fit(Xlin,y); pred_lin = lin.predict(Xlin)
-    Xquad = np.column_stack((x,x**2))
-    quad = linear_model.LinearRegression().fit(Xquad,y); pred_quad = quad.predict(Xquad)
-    sst = np.sum((y-y.mean())**2)
-    r2_lin = np.nan if sst == 0 else 1 - np.sum((y-pred_lin)**2)/sst
-    r2_quad = np.nan if sst == 0 else 1 - np.sum((y-pred_quad)**2)/sst
-    return r2_lin,r2_quad,r2_quad-r2_lin
 
 # ============================================================
 # LAGGED DATA + ONE COMPLETE TEMPORAL SPECIFICATION
@@ -293,16 +289,6 @@ X = X_original / 100000.0  # reporting scale: one predictor unit = 10^5 tonnes; 
 #TABLE 1
 vif_table = calculate_vif(X_original, features); vif_table.to_csv(path_data+'Table1_VIF.csv',index=False)
 
-#add
-# SUPPLEMENTARY NONLINEARITY CHECK: marginal linear vs quadratic fits
-nonlinearity_table = pd.DataFrame([
-    {'Predictor':features[j],
-     'Linear_R2':linear_quadratic_assessment(X_original[:,j],y)[0],
-     'Quadratic_R2':linear_quadratic_assessment(X_original[:,j],y)[1],
-     'Delta_R2':linear_quadratic_assessment(X_original[:,j],y)[2]}
-    for j in range(len(features))
-])
-nonlinearity_table.to_csv(path_data+'Supplement_nonlinearity_diagnostic.csv',index=False)
 
 #FIGURE 1
 plt.figure(figsize=(5.5,3.3))
@@ -360,7 +346,7 @@ primary = runs[('S2',0)]
 
 #add
 # ============================================================
-# SUPPLEMENTARY AUTOCORRELATION + RESIDUAL NONLINEARITY DIAGNOSTICS
+# SUPPLEMENTARY AUTOCORRELATION DIAGNOSTICS
 # Primary S2, lag 0, using one-step-ahead CV residuals (2006-2015)
 # ============================================================
 diag_rows=[]
@@ -498,8 +484,6 @@ print('\nTABLE 1. VIF')
 print(vif_table.to_string(index=False,float_format=lambda x:f'{x:.3f}'))
 #----------------------------------------------------------------------------------
 #add
-print('\nSUPPLEMENTARY NONLINEARITY DIAGNOSTIC: LINEAR VS QUADRATIC MARGINAL FIT')
-print(nonlinearity_table.to_string(index=False,float_format=lambda x:f'{x:.4f}'))
 print('\nSUPPLEMENTARY AUTOCORRELATION DIAGNOSTIC: PRIMARY ONE-STEP-AHEAD CV RESIDUALS')
 print(residual_diagnostics_table.to_string(index=False,float_format=lambda x:f'{x:.4f}'))
 #----------------------------------------------------------------------------------
