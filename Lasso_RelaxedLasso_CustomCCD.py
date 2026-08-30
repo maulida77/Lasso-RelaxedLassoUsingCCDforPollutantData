@@ -205,10 +205,14 @@ def calculate_vif(X, feature_names):
 
 #add
 def lag1_autocorrelation(residuals):
-    residuals = np.asarray(residuals,dtype=float).reshape(-1)
-    if len(residuals) < 3 or np.std(residuals[:-1]) == 0 or np.std(residuals[1:]) == 0:
+    residuals = np.asarray(residuals, dtype=float).reshape(-1)
+    if len(residuals) < 3:
         return np.nan
-    return np.corrcoef(residuals[:-1],residuals[1:])[0,1]
+    centered = residuals - residuals.mean()
+    denominator = np.sum(centered**2)
+    if denominator <= 1e-12:
+        return np.nan
+    return np.sum(centered[1:] * centered[:-1]) / denominator
 
 def residual_diagnostics(pred_df):
     obs = pred_df['Observed'].to_numpy(dtype=float); pred = pred_df['Predicted'].to_numpy(dtype=float)
